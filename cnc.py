@@ -77,34 +77,85 @@ class Program:
     
     @staticmethod
     def parse(data):
+        program_number = -1
         blocks = []
         program_start = False
         for line in data.splitlines():
-            if line.startswith("%"):
-                program_start = not program_start
-            elif program_start:
-                blocks.append(line)
-                print(line)
-        return Program(1, blocks)
+            # Strip comments out of the block
+            stripped_line = ""
+            comment = False
+            for c in line:
+                if c == "(":
+                    comment = True
+                elif c == ")":
+                    comment = False
+                elif not comment:
+                    stripped_line += c
+            # Remove all whitespace
+            stripped_line = "".join(stripped_line.split())
+            
+            if len(stripped_line) > 0:
+                if stripped_line.startswith("%"):
+                    program_start = not program_start
+                elif program_start:
+                    if line.startswith("O"):
+                        if line[1:].isdigit():
+                            program_number = int(line[1:])
+                        else:
+                            print("Invalid program number {}.".format(line[1:]))
+                    else:
+                        blocks.append(Block.parse(stripped_line))
+        return Program(program_number, blocks)
     
     def run(self):
         """Run the blocks of the program sequentially"""
         print(self.number)
-        print(self.blocks)
+        print("-------------")
+        for b in self.blocks:
+            for w in b.words:
+                print("{}: {}".format(w.letter, w.number))
+            print("-------------")
+        #print(self.blocks)
 
 class Block:
     def __init__(self, number, words):
         self.number = number
         self.words = words
-        
-    def run(self):
-        """Run the words of the block sequentially"""
-        pass
+
+    @staticmethod
+    def parse(data):
+        block_number = -1
+        words = []
+        letters = ("N", "G", "T", "S", "M", "X", "Y", "Z", "F")
+        command = ""
+        for c in data:
+            if c in letters:
+                if len(command) > 0:
+                    words.append(Word.parse(command))
+                command = c
+            else:
+                command += c
+        words.append(Word.parse(command))
+        return Block(block_number, words)
+    
+    #def run(self):
+    #    """Run the words of the block sequentially"""
+    #    pass
         
 class Word:
-    def parse(self, command):
-        pass
-     
+    def __init__(self, letter, number):
+        self.letter = letter
+        self.number = number
+
+    @staticmethod
+    def parse(command):
+        if command.startswith("X") or command.startswith("Y") or command.startswith("Z") or command.startswith("F"):
+            return Word(command[0], float(command[1:]))
+        elif command.startswith("T"):
+            return Word(command[0], command[1:])
+        else:
+            return Word(command[0], int(command[1:]))
+
 def parse_arguments():
     arguments = []
     if len(sys.argv) > 1:
