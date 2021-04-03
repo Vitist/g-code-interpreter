@@ -1,3 +1,6 @@
+import sys
+import os
+
 class MachineClient:
     def home(self):
         """ Moves machine to home position. """
@@ -61,3 +64,55 @@ class MachineClient:
     def coolant_off(self):
         """ Turns spindle coolant off. """
         print("Coolant turned off.")
+
+class Program:
+    def __init__(self, number, blocks):
+        self.number = number
+        self.blocks = blocks
+    
+    @staticmethod
+    def parse_from_file(path):
+        with open(path) as gcode_file:
+            return Program.parse(gcode_file.read())
+    
+    @staticmethod
+    def parse(data):
+        blocks = []
+        program_start = False
+        for line in data.splitlines():
+            if line.startswith("%"):
+                program_start = not program_start
+            elif program_start:
+                blocks.append(line)
+                print(line)
+        return Program(1, blocks)
+    
+    def run(self):
+        """Run the blocks of the program sequentially"""
+        print(self.number)
+        print(self.blocks)
+
+class Block:
+    def __init__(self, number, words):
+        self.number = number
+        self.words = words
+        
+    def run(self):
+        """Run the words of the block sequentially"""
+        pass
+        
+class Word:
+    def parse(self, command):
+        pass
+     
+def parse_arguments():
+    arguments = []
+    if len(sys.argv) > 1:
+        arguments = sys.argv[1:]
+    return arguments
+
+files = parse_arguments()
+
+for file in files:
+    program = Program.parse_from_file(file)
+    program.run()
