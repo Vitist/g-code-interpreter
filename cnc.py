@@ -76,11 +76,19 @@ class Program:
     
     @staticmethod
     def parse_from_file(path):
+        """ Parse a G-code program from a file.
+        Args:
+        path (string): Path to G-code file
+        """
         with open(path) as gcode_file:
             return Program.parse(gcode_file.read())
     
     @staticmethod
     def parse(data):
+        """ Parse a G-code program from a string of G-code commands.
+        Args:
+        data (string): contents of a G-code file
+        """
         program_number = -1
         blocks = []
         program_start = False
@@ -112,9 +120,10 @@ class Program:
         return Program(program_number, blocks)
     
     def run(self, machine_client):
-        """Run the blocks of the program sequentially"""
-        print(self.number)
-        print("-------------")
+        """Run the blocks of the program sequentially
+        Args:
+        machine_client (MachineClient): MachineClient object that is used to control the CNC machine
+        """
         for b in self.blocks:
             self.tool, self.x, self.y, self.z = b.run(machine_client, self.tool, self.x, self.y, self.z)
 
@@ -125,6 +134,10 @@ class Block:
 
     @staticmethod
     def parse(data):
+        """ Parse a G-code program block from a string of G-code commands.
+        Args:
+        data (string): A single line of a G-code program
+        """
         block_number = -1
         words = []
         letters = ("N", "G", "T", "S", "M", "X", "Y", "Z", "F")
@@ -146,7 +159,14 @@ class Block:
         return Block(block_number, words)
     
     def run(self, machine_client, tool, x, y, z):
-        """Run the words of the block"""
+        """Run the words of the block
+        Args:
+        machine_client (MachineClient): MachineClient object that is used to control the CNC machine
+        tool (string): Currently selected tool
+        x (float): Current X axis absolute value [mm]
+        y (float): Current Y axis absolute value [mm]
+        z (float): Current Z axis absolute value [mm]
+        """
         for w in self.words:
             if w.letter == "S":
                 # Spindle speed
@@ -230,8 +250,6 @@ class Block:
                 elif w.number == 94:
                     # Fixed cycle, simple cycle, for roughing
                     pass
-            print("{}: {}{}".format(w.priority, w.letter, w.number))
-        print("-------------")
         return tool, x, y, z
         
 class Word:
@@ -242,6 +260,10 @@ class Word:
         
     @staticmethod
     def parse(command):
+        """ Parse a G-code program word from a string.
+        Args:
+        data (string): A single word of a G-code program
+        """
         letter = command[0]
         
         # Parse number from word
@@ -277,13 +299,15 @@ class Word:
         return Word(letter, number, priority)
 
 def parse_arguments():
+    """ Parse command line arguments."""
     arguments = []
     if len(sys.argv) > 1:
         arguments = sys.argv[1:]
     return arguments
 
+# Parse G-code file paths from arguments
 files = parse_arguments()
-
+# Parse G-code programs from the files and run them
 for file in files:
     program = Program.parse_from_file(file)
     client = MachineClient()
