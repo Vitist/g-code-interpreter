@@ -70,9 +70,9 @@ class Program:
         self.number = number
         self.blocks = blocks
         self.tool = ""
-        self.x = 0
-        self.y = 0
-        self.z = 0
+        self.x = float(0)
+        self.y = float(0)
+        self.z = float(0)
     
     @staticmethod
     def parse_from_file(path):
@@ -116,7 +116,7 @@ class Program:
         print(self.number)
         print("-------------")
         for b in self.blocks:
-            b.run(machine_client, self.tool, self.x, self.y, self.z)
+            self.tool, self.x, self.y, self.z = b.run(machine_client, self.tool, self.x, self.y, self.z)
 
 class Block:
     def __init__(self, number, words):
@@ -176,8 +176,63 @@ class Block:
                 elif w.number == 30:
                     # End program
                     pass
+            elif w.letter == "G":
+                if w.number == 0 or w.number == 1:
+                    # Move (0 fast, 1 linear)
+                    # Find coordinate words from block
+                    move_x = False
+                    move_y = False
+                    move_z = False
+                    for cw in self.words:
+                        if cw.letter == "X":
+                            x = cw.number
+                            move_x = True
+                        elif cw.letter == "Y":
+                            y = cw.number
+                            move_y = True
+                        elif cw.letter == "Z":
+                            z = cw.number
+                            move_z = True
+                    # Move linearly on multiple axis if coordinates for atleast
+                    # 2 axis were given, else move on a single axis.
+                    if (move_x and move_y) or (move_x and move_z) or (move_y and move_z):
+                        machine_client.move(x, y, z)
+                    elif move_x:
+                        machine_client.move_x(x)
+                    elif move_y:
+                        machine_client.move_y(y)
+                    elif move_z:
+                        machine_client.move_z(z)
+                elif w.number == 17:
+                    # XY plane selection
+                    pass
+                elif w.number == 21:
+                    # Programming in millimeters
+                    pass
+                elif w.number == 28:
+                    # Move to home
+                    x = float(0)
+                    y = float(0)
+                    z = float(0)
+                    machine_client.home()
+                elif w.number == 40:
+                    # Tool radius compensation off
+                    pass
+                elif w.number == 49:
+                    # Tool length offset compensation cancel
+                    pass
+                elif w.number == 80:
+                    # Cancel canned cycle
+                    pass
+                elif w.number == 91:
+                    # Incremental programming
+                    pass
+                elif w.number == 94:
+                    # Fixed cycle, simple cycle, for roughing
+                    pass
             print("{}: {}{}".format(w.priority, w.letter, w.number))
         print("-------------")
+        return tool, x, y, z
         
 class Word:
     def __init__(self, letter, number, priority):
@@ -210,12 +265,14 @@ class Word:
             priority = 5
         elif letter == "M" and (number == 7 or number == 8 or number == 9):
             priority = 6
-        elif letter == "G" and (number == 0 or number == 1):
+        elif letter == "G" and number == 28:
             priority = 7
-        elif letter == "M" and number == 30:
+        elif letter == "G" and (number == 0 or number == 1):
             priority = 8
-        else:
+        elif letter == "M" and number == 30:
             priority = 9
+        else:
+            priority = 10
         
         return Word(letter, number, priority)
 
