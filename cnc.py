@@ -69,6 +69,10 @@ class Program:
     def __init__(self, number, blocks):
         self.number = number
         self.blocks = blocks
+        self.tool = ""
+        self.x = 0
+        self.y = 0
+        self.z = 0
     
     @staticmethod
     def parse_from_file(path):
@@ -112,7 +116,7 @@ class Program:
         print(self.number)
         print("-------------")
         for b in self.blocks:
-            b.run(machine_client)
+            b.run(machine_client, self.tool, self.x, self.y, self.z)
 
 class Block:
     def __init__(self, number, words):
@@ -141,18 +145,37 @@ class Block:
         words.sort(key=lambda w: w.priority)
         return Block(block_number, words)
     
-    def run(self, machine_client):
+    def run(self, machine_client, tool, x, y, z):
         """Run the words of the block"""
         for w in self.words:
             if w.letter == "S":
-                # spindle speed
+                # Spindle speed
                 machine_client.set_spindle_speed(w.number)
             elif w.letter == "F":
-                # feed rate
+                # Feed rate
                 machine_client.set_feed_rate(w.number)
             elif w.letter == "T":
-                # tool
-                machine_client.change_tool(w.number)
+                # Select tool
+                tool = w.number
+            elif w.letter == "M":
+                if w.number == 3 or w.number == 4:
+                    # Start spindle (3 clockwise, 4 counterclockwise)
+                    pass
+                elif w.number == 5:
+                    # Stop spindle
+                    pass
+                elif w.number == 6:
+                    # Change tool
+                    machine_client.change_tool(tool)
+                elif w.number == 7 or w.number == 8:
+                    # Coolant on (7 mist, 8 flood)
+                    machine_client.coolant_on()
+                elif w.number == 9:
+                    # Coolant off
+                    machine_client.coolant_off()
+                elif w.number == 30:
+                    # End program
+                    pass
             print("{}: {}{}".format(w.priority, w.letter, w.number))
         print("-------------")
         
