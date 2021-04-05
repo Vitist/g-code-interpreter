@@ -108,13 +108,12 @@ class Program:
             
             if len(stripped_line) > 0:
                 if stripped_line.startswith("%"):
-                    program_start = not program_start
+                    if program_start:
+                        break
+                    program_start = True
                 elif program_start:
                     if line.startswith("O"):
-                        if line[1:].isdigit():
-                            program_number = int(line[1:])
-                        else:
-                            print("Invalid program number {}.".format(line[1:]))
+                        program_number = int(line[1:])
                     else:
                         blocks.append(Block.parse(stripped_line))
         return Program(program_number, blocks)
@@ -308,7 +307,10 @@ def parse_arguments():
 # Parse G-code file paths from arguments
 files = parse_arguments()
 # Parse G-code programs from the files and run them
+client = MachineClient()
 for file in files:
-    program = Program.parse_from_file(file)
-    client = MachineClient()
-    program.run(client)
+    try:
+        program = Program.parse_from_file(file)
+        program.run(client)
+    except:
+        print("Could not run program from {}".format(file))
