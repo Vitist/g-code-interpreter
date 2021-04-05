@@ -138,11 +138,11 @@ class Block:
             else:
                 command += c
         words.append(Word.parse(command))
+        words.sort(key=lambda w: w.priority)
         return Block(block_number, words)
     
     def run(self, machine_client):
         """Run the words of the block"""
-        # TODO: execution order
         for w in self.words:
             if w.letter == "S":
                 # spindle speed
@@ -153,22 +153,48 @@ class Block:
             elif w.letter == "T":
                 # tool
                 machine_client.change_tool(w.number)
-            print("{}: {}".format(w.letter, w.number))
+            print("{}: {}{}".format(w.priority, w.letter, w.number))
         print("-------------")
         
 class Word:
-    def __init__(self, letter, number):
+    def __init__(self, letter, number, priority):
         self.letter = letter
         self.number = number
-
+        self.priority = priority
+        
     @staticmethod
     def parse(command):
-        if command.startswith("X") or command.startswith("Y") or command.startswith("Z") or command.startswith("F"):
-            return Word(command[0], float(command[1:]))
+        letter = command[0]
+        
+        # Parse number from word
+        if letter == "X" or letter == "Y" or letter == "Z" or letter == "F":
+            number = float(command[1:])
         elif command.startswith("T"):
-            return Word(command[0], command[1:])
+            number = command[1:]
         else:
-            return Word(command[0], int(command[1:]))
+            number = int(command[1:])
+        
+        # Set word priority, order of execution from http://linuxcnc.org/docs/html/gcode/overview.html
+        if letter == "F":
+            priority = 1
+        elif letter == "S":
+            priority = 2
+        elif letter == "T":
+            priority = 3
+        elif letter == "M" and number == 6:
+            priority = 4
+        elif letter == "M" and (number == 3 or number == 4 or number == 5):
+            priority = 5
+        elif letter == "M" and (number == 7 or number == 8 or number == 9):
+            priority = 6
+        elif letter == "G" and (number == 0 or number == 1):
+            priority = 7
+        elif letter == "M" and number == 30:
+            priority = 8
+        else:
+            priority = 9
+        
+        return Word(letter, number, priority)
 
 def parse_arguments():
     arguments = []
