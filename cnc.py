@@ -107,15 +107,12 @@ class Program:
                         blocks.append(Block.parse(stripped_line))
         return Program(program_number, blocks)
     
-    def run(self):
+    def run(self, machine_client):
         """Run the blocks of the program sequentially"""
         print(self.number)
         print("-------------")
         for b in self.blocks:
-            for w in b.words:
-                print("{}: {}".format(w.letter, w.number))
-            print("-------------")
-        #print(self.blocks)
+            b.run(machine_client)
 
 class Block:
     def __init__(self, number, words):
@@ -131,16 +128,33 @@ class Block:
         for c in data:
             if c in letters:
                 if len(command) > 0:
-                    words.append(Word.parse(command))
+                    word = Word.parse(command)
+                    # Block number should be at the start of the block
+                    if word.letter == "N":
+                        block_number = word.number
+                    else:
+                        words.append(word)
                 command = c
             else:
                 command += c
         words.append(Word.parse(command))
         return Block(block_number, words)
     
-    #def run(self):
-    #    """Run the words of the block sequentially"""
-    #    pass
+    def run(self, machine_client):
+        """Run the words of the block"""
+        # TODO: execution order
+        for w in self.words:
+            if w.letter == "S":
+                # spindle speed
+                machine_client.set_spindle_speed(w.number)
+            elif w.letter == "F":
+                # feed rate
+                machine_client.set_feed_rate(w.number)
+            elif w.letter == "T":
+                # tool
+                machine_client.change_tool(w.number)
+            print("{}: {}".format(w.letter, w.number))
+        print("-------------")
         
 class Word:
     def __init__(self, letter, number):
@@ -166,4 +180,5 @@ files = parse_arguments()
 
 for file in files:
     program = Program.parse_from_file(file)
-    program.run()
+    client = MachineClient()
+    program.run(client)
